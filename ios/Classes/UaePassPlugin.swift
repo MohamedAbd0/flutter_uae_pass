@@ -156,6 +156,6 @@ public class UaePassPlugin: NSObject, FlutterPlugin {
             webViewController.foreceStop()
             return false
         }
-       return true
+       return false
    }
 }
