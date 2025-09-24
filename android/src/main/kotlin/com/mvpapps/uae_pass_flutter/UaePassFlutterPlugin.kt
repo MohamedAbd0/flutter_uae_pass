@@ -130,10 +130,12 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         } else if (call.method == "sign_in") {
             /** Login with UAE Pass using custom full screen webview */
             val authUrl = buildAuthUrl()
+            val environmentString = if (environment == Environment.PRODUCTION) "production" else "staging"
             val intent = Intent(activity, UAEPassWebViewActivity::class.java).apply {
                 putExtra(UAEPassWebViewActivity.EXTRA_AUTH_URL, authUrl)
                 putExtra(UAEPassWebViewActivity.EXTRA_REDIRECT_URI, redirect_url)
                 putExtra(UAEPassWebViewActivity.EXTRA_SCHEME, scheme)
+                putExtra(UAEPassWebViewActivity.EXTRA_ENVIRONMENT, environmentString)
             }
 
             activity?.startActivityForResult(intent, 1001)

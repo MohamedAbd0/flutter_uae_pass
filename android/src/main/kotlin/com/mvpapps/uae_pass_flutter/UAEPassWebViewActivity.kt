@@ -2,6 +2,7 @@ package com.mvpapps.uae_pass_flutter
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -16,11 +17,18 @@ class UAEPassWebViewActivity : Activity() {
     private var authUrl: String? = null
     private var redirectUri: String? = null
     private var scheme: String? = null
+    private var environment: String? = null
+    
+    // UAE Pass app package names for different environments
+    private val UAE_PASS_PACKAGE_ID = "ae.uaepass.mainapp"
+    private val UAE_PASS_QA_PACKAGE_ID = "ae.uaepass.mainapp.qa"  
+    private val UAE_PASS_STG_PACKAGE_ID = "ae.uaepass.mainapp.stg"
     
     companion object {
         const val EXTRA_AUTH_URL = "auth_url"
         const val EXTRA_REDIRECT_URI = "redirect_uri"
         const val EXTRA_SCHEME = "scheme"
+        const val EXTRA_ENVIRONMENT = "environment"
         const val RESULT_CODE_SUCCESS = "success_code"
         const val RESULT_CODE_ERROR = "error_message"
         const val RESULT_CODE_CANCELLED = "cancelled"
@@ -45,6 +53,7 @@ class UAEPassWebViewActivity : Activity() {
         authUrl = intent.getStringExtra(EXTRA_AUTH_URL)
         redirectUri = intent.getStringExtra(EXTRA_REDIRECT_URI)
         scheme = intent.getStringExtra(EXTRA_SCHEME)
+        environment = intent.getStringExtra(EXTRA_ENVIRONMENT)
         
         // Set up WebView
         setupWebView()
@@ -140,15 +149,48 @@ class UAEPassWebViewActivity : Activity() {
         
         // Check for custom scheme (UAE Pass app launch)
         if (url.startsWith("uaepass://")) {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "UAE Pass app not found", Toast.LENGTH_SHORT).show()
+            if (isUAEPassAppInstalled()) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    intent.setPackage(getUAEPassPackageName())
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Unable to launch UAE Pass app", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "UAE Pass app not installed. Please install the ${getUAEPassAppName()} from Google Play Store.", Toast.LENGTH_LONG).show()
             }
             return true
         }
         
         return false
+    }
+    
+    private fun isUAEPassAppInstalled(): Boolean {
+        val packageName = getUAEPassPackageName()
+        return try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+    
+    private fun getUAEPassPackageName(): String {
+        return when (environment) {
+            "production" -> UAE_PASS_PACKAGE_ID
+            "staging" -> UAE_PASS_STG_PACKAGE_ID
+            "qa" -> UAE_PASS_QA_PACKAGE_ID
+            else -> UAE_PASS_STG_PACKAGE_ID // Default to staging
+        }
+    }
+    
+    private fun getUAEPassAppName(): String {
+        return when (environment) {
+            "production" -> "UAE PASS app"
+            "staging" -> "UAE PASS Staging app"
+            "qa" -> "UAE PASS QA app"
+            else -> "UAE PASS Staging app"
+        }
     }
 }
