@@ -35,7 +35,7 @@ import com.google.gson.Gson
 
 /** UaePassPlugin */
 class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
-    PluginRegistry.NewIntentListener, PluginRegistry.ActivityResultListener {
+    PluginRegistry.NewIntentListener {
 
     private lateinit var channel: MethodChannel
     private lateinit var requestModel: UAEPassAccessTokenRequestModel
@@ -69,7 +69,6 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         if (activity == null)
             activity = binding.activity
         binding.addOnNewIntentListener(this)
-        binding.addActivityResultListener(this)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -78,7 +77,7 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     override fun onReattachedToActivityForConfigChanges(@NonNull binding: ActivityPluginBinding) {
         activity = binding.activity
         binding.addOnNewIntentListener(this)
-        binding.addActivityResultListener(this)
+
     }
 
     override fun onDetachedFromActivity() {
@@ -93,9 +92,8 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-        try {
-            this.result = result
-            if (call.method == "set_up_environment") {
+        this.result = result
+        if (call.method == "set_up_environment") {
             CookieManager.getInstance().removeAllCookies { }
             CookieManager.getInstance().flush()
             client_id = call.argument<String>("client_id")
@@ -129,64 +127,30 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             CookieManager.getInstance().removeAllCookies { }
             CookieManager.getInstance().flush()
         } else if (call.method == "sign_in") {
-            /** 
-             * For v1.0.2 compatibility: Use UAE Pass library's native dialog
-             * The original v1.0.2 approach used the UAE Pass library directly
-             * without custom WebView. Since getAccessCode callback is not available,
-             * we'll simulate the v1.0.2 behavior by using getAccessToken but treating
-             * it as the sign-in authorization code.
-             */
-            if (activity == null) {
-                result.error("ERROR", "Activity not available", null)
-                return
-            }
-            
+            /** Login with UAE Pass and get the access Code. */
             requestModel = getAuthenticationRequestModel(activity!!)
-
-            // This will show the native UAE Pass dialog (not WebView)
-            getAccessToken(activity!!, requestModel, object : UAEPassAccessTokenCallback {
-                override fun getToken(authResult: String?, state: String, error: String?) {
-                    try {
-                        if (error != null) {
-                            result.error("ERROR", error, null)
-                        } else {
-                            // Return the result as the "authorization code" for Flutter compatibility
-                            result.success(authResult ?: "")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("UaePassFlutter", "Error in getToken callback: ${e.message}")
-                        result.error("ERROR", "Authentication callback failed: ${e.message}", null)
+            getAccessCode(activity!!, requestModel, object : UAEPassAccessCodeCallback {
+                override fun getAccessCode(code: String?, error: String?) {
+                    if (error != null) {
+                        result.error("ERROR", error, null);
+                    } else {
+                        result.success(code)
                     }
                 }
             })
         } else if (call.method == "access_token") {
-            if (activity == null) {
-                result.error("ERROR", "Activity not available", null)
-                return
-            }
-            
             requestModel = getAuthenticationRequestModel(activity!!)
 
             getAccessToken(activity!!, requestModel, object : UAEPassAccessTokenCallback {
                 override fun getToken(accessToken: String?, state: String, error: String?) {
-                    try {
-                        if (error != null) {
-                            result.error("ERROR", error, null)
-                        } else {
-                            result.success(accessToken ?: "")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("UaePassFlutter", "Error in access token callback: ${e.message}")
-                        result.error("ERROR", "Access token callback failed: ${e.message}", null)
+                    if (error != null) {
+                        result.error("ERROR", error, null);
+                    } else {
+                        result.success(accessToken)
                     }
                 }
             })
         } else if (call.method == "profile") {
-            if (activity == null) {
-                result.error("ERROR", "Activity not available", null)
-                return
-            }
-            
             val requestModel = getProfileRequestModel(activity!!)
 
             Log.d("TAG", "profile ${Gson().toJson(requestModel)}")
@@ -196,27 +160,18 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                     state: String,
                     error: String?
                 ) {
-                    try {
-                        Log.d("TAG", "error $error")
-                        if (error != null) {
-                            result.error("ERROR", error, null)
-                        } else {
-                            val gson = Gson()
-                            val profileJson = gson.toJson(profileModel)
-                            result.success(profileJson ?: "{}")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("UaePassFlutter", "Error in profile callback: ${e.message}")
-                        result.error("ERROR", "Profile callback failed: ${e.message}", null)
+                    Log.d("TAG", "error $error")
+                    if (error != null) {
+                        result.error("ERROR", error, null);
+                    } else {
+                        val gson = Gson()
+                        val profileJson = gson.toJson(profileModel)
+                        result.success(profileJson)
                     }
                 }
             })
         } else {
             result.notImplemented()
-        }
-        } catch (e: Exception) {
-            Log.e("UaePassFlutter", "Error in onMethodCall: ${e.message}")
-            result.error("ERROR", "Method call failed: ${e.message}", null)
         }
     }
 
@@ -227,18 +182,10 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     private fun handleIntent(intent: Intent?) {
-        try {
-            if (intent != null && intent.data != null) {
-                val intentScheme = intent.data?.scheme
-                if (scheme != null && scheme == intentScheme) {
-                    val dataString = intent.dataString
-                    if (dataString != null) {
-                        resume(dataString)
-                    }
-                }
+        if (intent != null && intent.data != null) {
+            if (scheme!! == intent.data!!.scheme) {
+                resume(intent.dataString)
             }
-        } catch (e: Exception) {
-            Log.e("UaePassFlutter", "Error handling intent: ${e.message}")
         }
     }
 
@@ -326,11 +273,4 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             LANGUAGE
         )
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        // No custom activity result handling needed for original UAE Pass library approach
-        return false
-    }
-
-    // Removed buildAuthUrl() method - using original UAE Pass library approach
 }
