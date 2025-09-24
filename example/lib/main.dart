@@ -23,7 +23,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _uaePass.setUpSandbox();
+    _uaePass.setUpSandbox(); // This uses staging - correct for your staging app
   }
 
   @override

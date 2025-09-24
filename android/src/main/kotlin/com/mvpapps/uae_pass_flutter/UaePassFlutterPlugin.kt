@@ -128,17 +128,18 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             CookieManager.getInstance().removeAllCookies { }
             CookieManager.getInstance().flush()
         } else if (call.method == "sign_in") {
-            /** Login with UAE Pass using custom full screen webview */
-            val authUrl = buildAuthUrl()
-            val environmentString = if (environment == Environment.PRODUCTION) "production" else "staging"
-            val intent = Intent(activity, UAEPassWebViewActivity::class.java).apply {
-                putExtra(UAEPassWebViewActivity.EXTRA_AUTH_URL, authUrl)
-                putExtra(UAEPassWebViewActivity.EXTRA_REDIRECT_URI, redirect_url)
-                putExtra(UAEPassWebViewActivity.EXTRA_SCHEME, scheme)
-                putExtra(UAEPassWebViewActivity.EXTRA_ENVIRONMENT, environmentString)
-            }
+            /** Login with UAE Pass using original library method (like v1.0.2) */
+            requestModel = getAuthenticationRequestModel(activity!!)
 
-            activity?.startActivityForResult(intent, 1001)
+            getAccessCode(activity!!, requestModel, object : UAEPassAccessCodeCallback {
+                override fun getAuthorizationCode(accessCode: String?, state: String, error: String?) {
+                    if (error != null) {
+                        result.error("ERROR", error, null);
+                    } else {
+                        result.success(accessCode)
+                    }
+                }
+            })
         } else if (call.method == "access_token") {
             requestModel = getAuthenticationRequestModel(activity!!)
 
@@ -276,49 +277,9 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        if (requestCode == 1001) {
-            when (resultCode) {
-                Activity.RESULT_OK -> {
-                    val code = data?.getStringExtra(UAEPassWebViewActivity.RESULT_CODE_SUCCESS)
-                    if (code != null) {
-                        result.success(code)
-                    } else {
-                        result.error("ERROR", "Unable to get access code", null)
-                    }
-                }
-                Activity.RESULT_CANCELED -> {
-                    val error = data?.getStringExtra(UAEPassWebViewActivity.RESULT_CODE_CANCELLED)
-                        ?: "Authentication Process Canceled By User"
-                    result.error("ERROR", error, null)
-                }
-                else -> {
-                    result.error("ERROR", "Unknown error occurred", null)
-                }
-            }
-            return true
-        }
+        // No custom activity result handling needed for original UAE Pass library approach
         return false
     }
 
-    private fun buildAuthUrl(): String {
-        val acrValue = if (isPackageInstalled(activity!!.packageManager)) {
-            ACR_VALUES_MOBILE
-        } else {
-            ACR_VALUES_WEB
-        }
-
-        val baseUrl = when (environment) {
-            Environment.PRODUCTION -> "https://id.uaepass.ae/idshub/authorize"
-            else -> "https://stg-id.uaepass.ae/idshub/authorize"
-        }
-
-        return "$baseUrl?" +
-                "response_type=$RESPONSE_TYPE&" +
-                "client_id=$client_id&" +
-                "redirect_uri=$redirect_url&" +
-                "scope=$scope&" +
-                "state=$state&" +
-                "acr_values=$acrValue&" +
-                "ui_locales=${if (language == "ar") "ar" else "en"}"
-    }
+    // Removed buildAuthUrl() method - using original UAE Pass library approach
 }

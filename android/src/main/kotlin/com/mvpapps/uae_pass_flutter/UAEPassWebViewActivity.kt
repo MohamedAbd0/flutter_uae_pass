@@ -149,16 +149,25 @@ class UAEPassWebViewActivity : Activity() {
         
         // Check for custom scheme (UAE Pass app launch)
         if (url.startsWith("uaepass://")) {
+            val packageName = getUAEPassPackageName()
+            val appName = getUAEPassAppName()
+            
+            // Debug: Show what we're trying to launch
+            Toast.makeText(this, "Trying to launch: $packageName", Toast.LENGTH_SHORT).show()
+            
             if (isUAEPassAppInstalled()) {
+                Toast.makeText(this, "App detected, launching...", Toast.LENGTH_SHORT).show()
                 try {
+                    // Try the simplest approach first - no package restriction
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    intent.setPackage(getUAEPassPackageName())
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
+                    
                 } catch (e: Exception) {
-                    Toast.makeText(this, "Unable to launch UAE Pass app", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Launch failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } else {
-                Toast.makeText(this, "UAE Pass app not installed. Please install the ${getUAEPassAppName()} from Google Play Store.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "$appName not detected. Looking for: $packageName", Toast.LENGTH_LONG).show()
             }
             return true
         }
@@ -169,20 +178,57 @@ class UAEPassWebViewActivity : Activity() {
     private fun isUAEPassAppInstalled(): Boolean {
         val packageName = getUAEPassPackageName()
         return try {
-            packageManager.getPackageInfo(packageName, 0)
-            true
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            // Additional check: verify the app can handle uaepass:// scheme
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("uaepass://"))
+            intent.setPackage(packageName)
+            val activities = packageManager.queryIntentActivities(intent, 0)
+            activities.isNotEmpty()
         } catch (e: PackageManager.NameNotFoundException) {
-            false
+            // If the environment-specific app is not found, check if any UAE Pass app is installed
+            checkForAnyUAEPassApp()
         }
     }
     
+    private fun checkForAnyUAEPassApp(): Boolean {
+        val packages = listOf(UAE_PASS_PACKAGE_ID, UAE_PASS_STG_PACKAGE_ID, UAE_PASS_QA_PACKAGE_ID)
+        for (pkg in packages) {
+            try {
+                packageManager.getPackageInfo(pkg, 0)
+                return true
+            } catch (e: PackageManager.NameNotFoundException) {
+                continue
+            }
+        }
+        return false
+    }
+    
     private fun getUAEPassPackageName(): String {
-        return when (environment) {
+        val preferredPackage = when (environment) {
             "production" -> UAE_PASS_PACKAGE_ID
             "staging" -> UAE_PASS_STG_PACKAGE_ID
             "qa" -> UAE_PASS_QA_PACKAGE_ID
             else -> UAE_PASS_STG_PACKAGE_ID // Default to staging
         }
+        
+        // Check if preferred package is installed
+        try {
+            packageManager.getPackageInfo(preferredPackage, 0)
+            return preferredPackage
+        } catch (e: PackageManager.NameNotFoundException) {
+            // If preferred is not available, find any available UAE Pass app
+            val packages = listOf(UAE_PASS_PACKAGE_ID, UAE_PASS_STG_PACKAGE_ID, UAE_PASS_QA_PACKAGE_ID)
+            for (pkg in packages) {
+                try {
+                    packageManager.getPackageInfo(pkg, 0)
+                    return pkg
+                } catch (e: PackageManager.NameNotFoundException) {
+                    continue
+                }
+            }
+        }
+        
+        return preferredPackage // Return preferred even if not installed (for error messaging)
     }
     
     private fun getUAEPassAppName(): String {

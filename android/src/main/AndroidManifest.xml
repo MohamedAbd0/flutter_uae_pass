@@ -4,11 +4,6 @@
   <uses-permission android:name="android.permission.INTERNET" />
   
   <application>
-    <activity
-      android:name=".UAEPassWebViewActivity"
-      android:theme="@android:style/Theme.Material.Light.DarkActionBar"
-      android:exported="false"
-      android:screenOrientation="portrait" />
   </application>
 
 </manifest>
