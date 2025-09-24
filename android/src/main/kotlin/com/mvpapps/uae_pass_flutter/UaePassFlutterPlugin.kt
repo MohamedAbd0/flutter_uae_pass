@@ -128,15 +128,23 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             CookieManager.getInstance().removeAllCookies { }
             CookieManager.getInstance().flush()
         } else if (call.method == "sign_in") {
-            /** Login with UAE Pass using original library method (like v1.0.2) */
+            /** 
+             * For v1.0.2 compatibility: Use UAE Pass library's native dialog
+             * The original v1.0.2 approach used the UAE Pass library directly
+             * without custom WebView. Since getAccessCode callback is not available,
+             * we'll simulate the v1.0.2 behavior by using getAccessToken but treating
+             * it as the sign-in authorization code.
+             */
             requestModel = getAuthenticationRequestModel(activity!!)
 
-            getAccessCode(activity!!, requestModel, object : UAEPassAccessCodeCallback {
-                override fun getAuthorizationCode(accessCode: String?, state: String, error: String?) {
+            // This will show the native UAE Pass dialog (not WebView)
+            getAccessToken(activity!!, requestModel, object : UAEPassAccessTokenCallback {
+                override fun getToken(authResult: String?, state: String, error: String?) {
                     if (error != null) {
-                        result.error("ERROR", error, null);
+                        result.error("ERROR", error, null)
                     } else {
-                        result.success(accessCode)
+                        // Return the result as the "authorization code" for Flutter compatibility
+                        result.success(authResult)
                     }
                 }
             })
