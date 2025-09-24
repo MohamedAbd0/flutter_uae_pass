@@ -93,8 +93,9 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-        this.result = result
-        if (call.method == "set_up_environment") {
+        try {
+            this.result = result
+            if (call.method == "set_up_environment") {
             CookieManager.getInstance().removeAllCookies { }
             CookieManager.getInstance().flush()
             client_id = call.argument<String>("client_id")
@@ -135,32 +136,57 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
              * we'll simulate the v1.0.2 behavior by using getAccessToken but treating
              * it as the sign-in authorization code.
              */
+            if (activity == null) {
+                result.error("ERROR", "Activity not available", null)
+                return
+            }
+            
             requestModel = getAuthenticationRequestModel(activity!!)
 
             // This will show the native UAE Pass dialog (not WebView)
             getAccessToken(activity!!, requestModel, object : UAEPassAccessTokenCallback {
                 override fun getToken(authResult: String?, state: String, error: String?) {
-                    if (error != null) {
-                        result.error("ERROR", error, null)
-                    } else {
-                        // Return the result as the "authorization code" for Flutter compatibility
-                        result.success(authResult)
+                    try {
+                        if (error != null) {
+                            result.error("ERROR", error, null)
+                        } else {
+                            // Return the result as the "authorization code" for Flutter compatibility
+                            result.success(authResult ?: "")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UaePassFlutter", "Error in getToken callback: ${e.message}")
+                        result.error("ERROR", "Authentication callback failed: ${e.message}", null)
                     }
                 }
             })
         } else if (call.method == "access_token") {
+            if (activity == null) {
+                result.error("ERROR", "Activity not available", null)
+                return
+            }
+            
             requestModel = getAuthenticationRequestModel(activity!!)
 
             getAccessToken(activity!!, requestModel, object : UAEPassAccessTokenCallback {
                 override fun getToken(accessToken: String?, state: String, error: String?) {
-                    if (error != null) {
-                        result.error("ERROR", error, null);
-                    } else {
-                        result.success(accessToken)
+                    try {
+                        if (error != null) {
+                            result.error("ERROR", error, null)
+                        } else {
+                            result.success(accessToken ?: "")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UaePassFlutter", "Error in access token callback: ${e.message}")
+                        result.error("ERROR", "Access token callback failed: ${e.message}", null)
                     }
                 }
             })
         } else if (call.method == "profile") {
+            if (activity == null) {
+                result.error("ERROR", "Activity not available", null)
+                return
+            }
+            
             val requestModel = getProfileRequestModel(activity!!)
 
             Log.d("TAG", "profile ${Gson().toJson(requestModel)}")
@@ -170,18 +196,27 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                     state: String,
                     error: String?
                 ) {
-                    Log.d("TAG", "error $error")
-                    if (error != null) {
-                        result.error("ERROR", error, null);
-                    } else {
-                        val gson = Gson()
-                        val profileJson = gson.toJson(profileModel)
-                        result.success(profileJson)
+                    try {
+                        Log.d("TAG", "error $error")
+                        if (error != null) {
+                            result.error("ERROR", error, null)
+                        } else {
+                            val gson = Gson()
+                            val profileJson = gson.toJson(profileModel)
+                            result.success(profileJson ?: "{}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UaePassFlutter", "Error in profile callback: ${e.message}")
+                        result.error("ERROR", "Profile callback failed: ${e.message}", null)
                     }
                 }
             })
         } else {
             result.notImplemented()
+        }
+        } catch (e: Exception) {
+            Log.e("UaePassFlutter", "Error in onMethodCall: ${e.message}")
+            result.error("ERROR", "Method call failed: ${e.message}", null)
         }
     }
 
@@ -192,10 +227,18 @@ class UaePassFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent != null && intent.data != null) {
-            if (scheme!! == intent.data!!.scheme) {
-                resume(intent.dataString)
+        try {
+            if (intent != null && intent.data != null) {
+                val intentScheme = intent.data?.scheme
+                if (scheme != null && scheme == intentScheme) {
+                    val dataString = intent.dataString
+                    if (dataString != null) {
+                        resume(dataString)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e("UaePassFlutter", "Error handling intent: ${e.message}")
         }
     }
 
