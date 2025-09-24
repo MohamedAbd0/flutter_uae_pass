@@ -48,3 +48,8 @@
 - Implemented conditional imports to prevent web-specific code from being compiled on mobile
 - Added platform-specific stub implementations for proper cross-platform compatibility
 - Fixed "Dart library 'dart:html' is not available on this platform" error when running on Android/iOS
+
+## 1.1.0
+
+- Fix Facing chrome redirection issue after auth succes or failure
+- Getting Error UAE Pass app not found
