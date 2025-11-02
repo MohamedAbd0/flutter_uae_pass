@@ -53,3 +53,7 @@
 
 - Fix Facing chrome redirection issue after auth succes or failure
 - Getting Error UAE Pass app not found
+
+## 1.1.1
+
+- Fix: include XIB resources in iOS podspec to prevent crash
