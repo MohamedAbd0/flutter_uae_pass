@@ -66,9 +66,18 @@ import WebKit
     public func reloadwithURL(url: String) {
         webView = UAEPASSRouter.shared.webView
         webView?.navigationDelegate = self
-        webView?.frame = self.view.frame
         if let webView = webView {
-            _ = view.addSubviewStretched(subview: webView)
+            webView.removeFromSuperview()
+            webView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(webView)
+            // Keep the page inside the safe area (below the navigation bar, above the home indicator).
+            let safeArea = view.safeAreaLayoutGuide
+            NSLayoutConstraint.activate([
+                webView.topAnchor.constraint(equalTo: safeArea.topAnchor),
+                webView.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor),
+                webView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+                webView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
+            ])
         }
         self.urlString = url
         if let url = URL(string: url) {
@@ -104,7 +113,10 @@ import WebKit
     
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
         let url = navigationAction.request.url
-        guard let urlString = navigationAction.request.mainDocumentURL?.absoluteString else { return }
+        guard let urlString = navigationAction.request.mainDocumentURL?.absoluteString else {
+            decisionHandler(.allow, contentMode)
+            return
+        }
         if urlString.contains("error=access_denied") || urlString.contains("error=cancelled") {
             if alreadyCanceled == false {
                 skipDismiss = true
@@ -151,7 +163,6 @@ import WebKit
             }
         } else if navigationAction.navigationType == .linkActivated && (urlString.contains("signup") || urlString.contains("account-recovery")) {
             if let url = navigationAction.request.mainDocumentURL {
-                decisionHandler(.allow, contentMode)
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 decisionHandler(.cancel, contentMode)
             } else {

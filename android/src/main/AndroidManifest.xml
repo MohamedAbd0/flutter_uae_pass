@@ -1,4 +1,11 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.mvpapps.uae_pass_flutter">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Lets the plugin detect the UAE PASS app on Android 11+ (package visibility). -->
+    <queries>
+        <package android:name="ae.uaepass.mainapp" />
+        <package android:name="ae.uaepass.mainapp.stg" />
+    </queries>
 
 </manifest>

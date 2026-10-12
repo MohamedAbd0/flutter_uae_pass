@@ -2,27 +2,21 @@ PODS:
   - Flutter (1.0.0)
   - flutter_uae_pass (0.0.1):
     - Flutter
-  - integration_test (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_uae_pass (from `.symlinks/plugins/flutter_uae_pass/ios`)
-  - integration_test (from `.symlinks/plugins/integration_test/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
   flutter_uae_pass:
     :path: ".symlinks/plugins/flutter_uae_pass/ios"
-  integration_test:
-    :path: ".symlinks/plugins/integration_test/ios"
 
 SPEC CHECKSUMS:
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  flutter_uae_pass: 49160e01023a9815164b94a07b6f6ce3c79b1e56
-  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  flutter_uae_pass: db367236737259b4a38ac9fcd3fc6878713b25f6
 
-PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
+PODFILE CHECKSUM: 88001a6f63fedf7dfbfdf4ee0c335d29da93cbc0
 
 COCOAPODS: 1.16.2

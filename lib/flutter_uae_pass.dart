@@ -7,7 +7,7 @@ export 'model/export.dart';
 
 class UaePass {
   Future<void> setUpSandbox({String language = "en"}) async {
-    UaePassPlatform.instance.setUp(
+    await UaePassPlatform.instance.setUp(
       clientId: "sandbox_stage",
       clientSecret: "sandbox_stage",
       isProduction: false,
@@ -29,7 +29,7 @@ class UaePass {
     String scope = "urn:uae:digitalid:profile",
     String language = "en",
   }) async {
-    UaePassPlatform.instance.setUp(
+    await UaePassPlatform.instance.setUp(
       clientId: clientId,
       clientSecret: clientSecret,
       isProduction: isProduction,

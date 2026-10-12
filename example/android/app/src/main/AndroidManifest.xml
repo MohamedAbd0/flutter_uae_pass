@@ -35,11 +35,11 @@
 
                 <data
                     android:host="success"
-                    android:scheme="myappscheme" />
+                    android:scheme="uaepassdemoappds" />
 
                 <data
                     android:host="failure"
-                    android:scheme="myappscheme" />
+                    android:scheme="uaepassdemoappds" />
 
             </intent-filter>
 

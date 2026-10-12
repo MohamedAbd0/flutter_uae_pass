@@ -10,7 +10,10 @@ import UIKit
 
 @objc public class UserInterfaceInfo: NSObject {
     @objc public class func topViewController() -> UIViewController? {
-        guard let windowRootViewController = UIApplication.shared.windows.filter({$0.isKeyWindow}).first?.rootViewController else {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+        guard let windowRootViewController = (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController else {
             return nil
         }
         return findTopViewController(candidateViewController: windowRootViewController)
